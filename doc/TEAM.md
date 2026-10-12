@@ -8,7 +8,8 @@ Trưởng nhóm/người nộp: Phạm Quân - 2A202602890
 
 Ngày lab/deadline áp dụng:
 
-Commit dùng để chấm: d860aa42becc24f69c78af6170512234a08fadab (Phase C implementation/artifacts; commit TEAM phía sau chỉ ghi SHA này).
+Commit dùng để chấm: 65f6aaf610408af6c9f1baca94c5da62d4ff27af (phase A+B; commit mới nhất đã push lên nhánh main tại thời điểm cập nhật). d860aa42becc24f69c78af6170512234a08fadab (Phase C implementation/artifacts; commit TEAM phía sau chỉ ghi SHA này).
+
 
 Thông tin nhóm và các thành viên khác để trống theo yêu cầu. Danh sách này chưa
 phải danh sách đầy đủ của nhóm.
@@ -114,7 +115,7 @@ phụ trách C.
   2429.126 ms, vượt budget 500 ms. Quota Gemini vẫn giãn 4.5 giây giữa requests,
   nhưng admission wait được tách khỏi timer; lượt trước gồm chờ có P95 4811.519 ms.
 - Commit Phase C: d860aa42becc24f69c78af6170512234a08fadab; dùng author Git
-  Hoang Cong Minh. Commit local, chưa push lên repo nhóm.
+  Hoang Cong Minh.
 - Lượt đầu giữ ở guard_results_initial.json để đối chiếu chặn sai clean;
   tăng self-check từ mặc định 3 token lên 256 để sửa chặn sai clean; sau đó
   giảm xuống 16 token cho batch tối ưu và kiểm tra lại đủ 20/8/4 cases.
@@ -127,6 +128,3 @@ phụ trách C.
   Hoàng Công Minh cần tự rà soát/giải thích phần khai. Không khai mock là
   thực nghiệm thật hoặc phần có AI hỗ trợ là tự thực hiện hoàn toàn.
 
-## Cập nhật sau khi nộp
-
-Chưa ghi nhận thông tin nộp bài hoặc cập nhật sau khi nộp.
