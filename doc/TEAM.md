@@ -8,7 +8,7 @@ Trưởng nhóm/người nộp: **Hoàng Công Minh — 2A202602774**.
 
 Ngày lab/deadline áp dụng:
 
-Commit dùng để chấm: xem commit Phase C được ghi ở mục INDIVIDUAL; repo chưa push.
+Commit dùng để chấm: d860aa42becc24f69c78af6170512234a08fadab (Phase C implementation/artifacts; commit TEAM phía sau chỉ ghi SHA này). Repo chưa push.
 
 Thông tin nhóm và các thành viên khác để trống theo yêu cầu. Danh sách này chưa
 phải danh sách đầy đủ của nhóm.
@@ -59,7 +59,7 @@ chưa có báo cáo A/B để đối chiếu. Không quy phần m1–m5/A/B cho 
 - Latency sau tối ưu: 20 timed samples, 2 warm-up mỗi tầng; input guard P95
   2429.126 ms, vượt budget 500 ms. Quota Gemini vẫn giãn 4.5 giây giữa requests,
   nhưng admission wait được tách khỏi timer; lượt trước gồm chờ có P95 4811.519 ms.
-- Commit Phase C: sẽ được ghi sau khi commit source và artifacts; dùng author Git
+- Commit Phase C: d860aa42becc24f69c78af6170512234a08fadab; dùng author Git
   Hoang Cong Minh. Commit local, chưa push lên repo nhóm.
 - Lượt đầu giữ ở guard_results_initial.json để đối chiếu chặn sai clean;
   tăng self-check từ mặc định 3 token lên 256 để sửa chặn sai clean; sau đó
