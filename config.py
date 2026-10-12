@@ -6,8 +6,19 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # --- API Keys ---
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "") or os.getenv("GEMINI_API_KEY", "")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "") or GOOGLE_API_KEY
 HF_TOKEN = os.getenv("HF_TOKEN", "")  # Optional: for HuggingFace models
+
+if GOOGLE_API_KEY:
+    os.environ["GOOGLE_API_KEY"] = GOOGLE_API_KEY
+    os.environ["OPENAI_API_KEY"] = GOOGLE_API_KEY
+    os.environ.setdefault("OPENAI_BASE_URL", "https://generativelanguage.googleapis.com/v1beta/openai")
+    OPENAI_API_KEY = GOOGLE_API_KEY
+else:
+    os.environ.pop("OPENAI_BASE_URL", None)
+
+OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "")
 
 # --- Qdrant (same as Day 18) ---
 QDRANT_HOST = "localhost"
@@ -45,8 +56,11 @@ GUARDRAILS_CONFIG_DIR = os.path.join(ROOT_DIR, "guardrails")
 PAIR_QUESTION_IDS = (1, 5, 12, 21, 41)
 
 # --- LLM Judge ---
-GENERATION_MODEL = "gpt-4o-mini"
-JUDGE_MODEL = "gpt-4o-mini"
+# Google AI Studio exposes models through the OpenAI-compatible endpoint.
+GENERATION_MODEL = "gemini-3.1-flash-lite"
+JUDGE_MODEL = "gemini-3.1-flash-lite"
+EVALUATOR_LLM_MODEL = "gemini-3.5-flash-lite"
+EVALUATOR_EMBEDDING_MODEL = "gemini-embedding-001"
 
 # --- Guardrail latency budget ---
 LATENCY_BUDGET_P95_MS = 500  # Full guard target; Task 12 currently measures input guards only.

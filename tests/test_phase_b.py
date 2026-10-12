@@ -18,6 +18,23 @@ def test_pairwise_uses_json_judge(openai_client):
     assert call["response_format"] == {"type":"json_object"}
 
 
+def test_pairwise_retries_invalid_model_output(openai_client):
+    import json
+    from types import SimpleNamespace
+
+    valid = json.dumps({"winner":"A","reasoning":"Matches the supplied policy.",
+                        "scores":{"A":.9,"B":.2}})
+    invalid = json.dumps({"winner":"A or B","reasoning":"Invalid winner.",
+                          "scores":{"A":.9,"B":.2}})
+    openai_client.chat.completions.create.side_effect = [
+        SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content=invalid))]),
+        SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content=valid))]),
+    ]
+    result = phase.pairwise_judge(Q,A,B,reference=REF)
+    assert result["winner"] == "A"
+    assert openai_client.chat.completions.create.call_count == 2
+
+
 @pytest.mark.parametrize("second_raw,expected,consistent", [("B","A",True),("A","tie",False)])
 def test_swap_conversion_and_calls(monkeypatch,second_raw,expected,consistent):
     mocked = Mock(side_effect=[

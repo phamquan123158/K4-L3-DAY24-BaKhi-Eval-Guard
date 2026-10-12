@@ -1,10 +1,10 @@
 # Nhóm thực hiện K4 Track 3B
 
-Tên nhóm:
+Tên nhóm: BaKhi
 
-Repo chung:
+Repo chung: https://github.com/phamquan123158/K4-L3-DAY24-BaKhi-Eval-Guard
 
-Trưởng nhóm/người nộp:
+Trưởng nhóm/người nộp: Phạm Quân - 2A202602890
 
 Ngày lab/deadline áp dụng:
 
@@ -18,10 +18,11 @@ phải danh sách đầy đủ của nhóm.
 | STT | Họ và tên | MSSV | Vai trò / công việc thật | Bằng chứng |
 |---|---|---|---|---|
 | 1 | Hoàng Công Minh | 2A202602774 | Thành viên; phụ trách Phase C và phần guardrails của blueprint | src/phase_c_guard.py; tests/test_phase_c.py; doc/reports/blueprint.md |
+| 2 | Phạm Quân | 2A202602890 | Thành viên; phụ trách Phase A (RAGAS) và Phase B (LLM Judge) | src/m4_eval.py; artifacts/ragas_50q.json; artifacts/judge_results.json; doc/reports/failure_clusters.md; doc/reports/bias_report.md |
 
 Người tích hợp/chạy batch/nộp link:
 
-Các thành viên và phân công A/B:
+Phân công A/B: Phạm Quân - 2A202602890.
 
 ## Môi trường và chuẩn bị trước lớp
 
@@ -34,10 +35,63 @@ với gemini-3.5-flash-lite qua endpoint Gemini tương thích OpenAI.
 Key giữ trong .env, không đưa vào báo cáo/source.
 
 Docker CLI/daemon WSL hoạt động, tải Qdrant v1.9.7 trước đó bị timeout TLS.
-Phase C dùng fixtures, không cần Qdrant. m1–m5/answers_50q.json có trong repo;
-chưa có báo cáo A/B để đối chiếu. Không quy phần m1–m5/A/B cho người phụ trách C.
+Phase C dùng fixtures, không cần Qdrant. Không quy phần m1–m5/A/B cho người
+phụ trách C.
+
+## Tiến độ Phase A và Phase B
+
+### Phase A — RAGAS
+
+- Đã chạy live 50 câu, đủ 20 factual / 20 multi_hop / 10 adversarial và 4
+  metric RAGAS mỗi câu; evaluator dùng `gemini-3.5-flash-lite` cùng
+  `gemini-embedding-001`. Do giới hạn Gemini không nhận nhiều candidates,
+  `answer_relevancy` dùng `strictness=1` (khác mặc định 3).
+- Artifact [artifacts/ragas_50q.json](../artifacts/ragas_50q.json) có
+  provenance và SHA-256 input; đã qua schema, source-hash và Phase A checks.
+- Lưu ý: cả 50 answer đầu vào có `generation_mode=extractive_fallback`, không
+  có generation model. Đây là đánh giá RAGAS live trên answer/context/reference
+  đã lưu, không phải đánh giá end-to-end answer do LLM sinh.
+- Báo cáo lỗi, điểm theo distribution, bottom 10 và matrix:
+  [doc/reports/failure_clusters.md](reports/failure_clusters.md).
+- Báo cáo Phase A ghi người phụ trách là Phạm Quân - 2A202602890.
+
+### Phase B — LLM Judge
+
+- Đã chạy live judge với `gemini-3.1-flash-lite`; artifact
+  [artifacts/judge_results.json](../artifacts/judge_results.json) ghi kết quả
+  5 cặp A/B qua hai lượt và calibration 10 nhãn.
+- Kết quả được ghi nhận: position inconsistency 2/5; verbosity win rate 0/3
+  trên các cặp decisive; calibration khớp human 10/10, Cohen's κ = 1.0.
+  Các kết quả này chỉ áp dụng trên mẫu đã chạy, không khẳng định judge tổng
+  quát luôn chính xác.
+- Báo cáo phân tích:
+  [doc/reports/bias_report.md](reports/bias_report.md).
+- Người được nhóm phân công phụ trách Phase B: Phạm Quân - 2A202602890.
+
+## Reports
+
+| Phase | Báo cáo | Artifact |
+|---|---|---|
+| A — RAGAS và failure clusters | [failure_clusters.md](reports/failure_clusters.md) | [ragas_50q.json](../artifacts/ragas_50q.json) |
+| B — LLM Judge và bias/calibration | [bias_report.md](reports/bias_report.md) | [judge_results.json](../artifacts/judge_results.json) |
 
 ## INDIVIDUAL
+
+### PhamQuan-2A202602890
+
+- Vai trò: thành viên; được nhóm phân công phụ trách Phase A và Phase B.
+- Phase A: cấu hình evaluator RAGAS với Gemini chat model và Gemini embeddings,
+  chạy batch live 50 câu, kiểm tra artifact/provenance, phân tích bottom 10,
+  worst-metric matrix và cập nhật failure-cluster report.
+- Phase B: chạy live LLM Judge cho 5 cặp A/B qua hai lượt và calibration 10
+  nhãn; kiểm tra kết quả, position inconsistency, verbosity win rate, Cohen's
+  κ và cập nhật bias report.
+- Bằng chứng: `src/m4_eval.py`, `artifacts/ragas_50q.json`,
+  `artifacts/judge_results.json`, `doc/reports/failure_clusters.md` và
+  `doc/reports/bias_report.md`. Xem các giới hạn và chi tiết kết quả trong
+  từng báo cáo; đặc biệt, Phase A dùng answer đầu vào `extractive_fallback`.
+- Công việc được thực hiện có hỗ trợ AI; người phụ trách cần tự rà soát và có
+  thể giải thích cách chạy, kết quả, cùng các giới hạn của artifacts.
 
 ### HoangCongMinh-2A202602774
 

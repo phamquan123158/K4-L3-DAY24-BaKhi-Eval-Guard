@@ -2,7 +2,9 @@ from __future__ import annotations
 
 """Module 4: RAGAS Evaluation — 4 metrics + failure analysis."""
 
+import copy
 import os, sys, json
+from math import isfinite
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 if hasattr(sys.stderr, "reconfigure"):
@@ -10,7 +12,8 @@ if hasattr(sys.stderr, "reconfigure"):
 from dataclasses import dataclass
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from config import OPENAI_API_KEY, TEST_SET_PATH
+from config import (EVALUATOR_EMBEDDING_MODEL, EVALUATOR_LLM_MODEL,
+                    GOOGLE_API_KEY, OPENAI_API_KEY, OPENAI_BASE_URL, TEST_SET_PATH)
 
 
 @dataclass
@@ -33,9 +36,43 @@ def load_test_set(path: str = TEST_SET_PATH) -> list[dict]:
 
 def _safe_float(value, default=0.0) -> float:
     try:
-        return float(value)
+        parsed = float(value)
     except (TypeError, ValueError):
-        return float(default)
+        raise ValueError(f"RAGAS returned a non-numeric metric: {value!r}") from None
+    if not isfinite(parsed) or not 0 <= parsed <= 1:
+        raise ValueError(f"RAGAS metric must be finite and within [0, 1]: {value!r}")
+    return parsed
+
+
+class GoogleGenAIEmbeddings:
+    """LangChain-compatible adapter for Gemini's native embedding API."""
+
+    def __init__(self, client):
+        self.client = client
+
+    def embed_documents(self, texts: list[str]) -> list[list[float]]:
+        if not texts:
+            return []
+        response = self.client.models.embed_content(
+            model=EVALUATOR_EMBEDDING_MODEL,
+            contents=texts,
+        )
+        embeddings = getattr(response, "embeddings", None)
+        if not isinstance(embeddings, list) or len(embeddings) != len(texts):
+            raise ValueError("Gemini embeddings response did not match the requested texts.")
+        vectors = []
+        for embedding in embeddings:
+            values = getattr(embedding, "values", None)
+            if not isinstance(values, list) or not values:
+                raise ValueError("Gemini returned an empty or invalid embedding vector.")
+            vector = [float(value) for value in values]
+            if any(not isfinite(value) for value in vector):
+                raise ValueError("Gemini embedding vector contains a non-finite value.")
+            vectors.append(vector)
+        return vectors
+
+    def embed_query(self, text: str) -> list[float]:
+        return self.embed_documents([text])[0]
 
 
 def _heuristic_eval(questions: list[str], answers: list[str],
@@ -90,51 +127,85 @@ def _heuristic_eval(questions: list[str], answers: list[str],
 
 def evaluate_ragas(questions: list[str], answers: list[str],
                    contexts: list[list[str]], ground_truths: list[str]) -> dict:
-    """Run RAGAS evaluation with graceful fallback if dependencies are unavailable."""
-    try:
-        if not OPENAI_API_KEY:
-            raise RuntimeError("OPENAI_API_KEY missing")
-        from datasets import Dataset
-        from ragas import evaluate
-        from ragas.metrics import answer_relevancy, context_precision, context_recall, faithfulness
+    """Run genuine RAGAS metrics with explicitly configured Gemini models.
 
-        dataset = Dataset.from_dict({
-            "question": questions,
-            "answer": answers,
-            "contexts": contexts,
-            "ground_truth": ground_truths,
-        })
-        result = evaluate(dataset, metrics=[
-            faithfulness,
-            answer_relevancy,
-            context_precision,
-            context_recall,
-        ])
-        df = result.to_pandas()
-        per_question = []
-        for _, row in df.iterrows():
-            per_question.append(EvalResult(
-                question=str(row.get("question", "")),
-                answer=str(row.get("answer", "")),
-                contexts=list(row.get("contexts", [])),
-                ground_truth=str(row.get("ground_truth", "")),
-                faithfulness=_safe_float(row.get("faithfulness", 0.0)),
-                answer_relevancy=_safe_float(row.get("answer_relevancy", 0.0)),
-                context_precision=_safe_float(row.get("context_precision", 0.0)),
-                context_recall=_safe_float(row.get("context_recall", 0.0)),
-            ))
+    Provider, dependency, and per-row metric errors are raised; none are replaced
+    by synthetic heuristic scores in a submission run.
+    """
+    if not GOOGLE_API_KEY:
+        raise RuntimeError("Set GOOGLE_API_KEY to run genuine Gemini-backed RAGAS evaluation.")
+    if not (len(questions) == len(answers) == len(contexts) == len(ground_truths)):
+        raise ValueError("Questions, answers, contexts, and references must have equal lengths.")
 
-        aggregate = {
-            "faithfulness": sum(r.faithfulness for r in per_question) / max(len(per_question), 1),
-            "answer_relevancy": sum(r.answer_relevancy for r in per_question) / max(len(per_question), 1),
-            "context_precision": sum(r.context_precision for r in per_question) / max(len(per_question), 1),
-            "context_recall": sum(r.context_recall for r in per_question) / max(len(per_question), 1),
-            "per_question": per_question,
-        }
-        return aggregate
-    except Exception as e:
-        print(f"  ⚠️  RAGAS evaluation failed: {e}")
-        return _heuristic_eval(questions, answers, contexts, ground_truths)
+    from datasets import Dataset
+    from google import genai
+    from langchain_openai import ChatOpenAI
+    from ragas import evaluate
+    from ragas.metrics import answer_relevancy, context_precision, context_recall, faithfulness
+    from ragas.run_config import RunConfig
+
+    if OPENAI_BASE_URL != "https://generativelanguage.googleapis.com/v1beta/openai":
+        raise ValueError("RAGAS evaluator requires the configured Google AI Studio OpenAI-compatible endpoint.")
+    if not OPENAI_API_KEY:
+        raise RuntimeError("No API key is configured for the Gemini-compatible chat model.")
+
+    dataset = Dataset.from_dict({
+        "question": questions,
+        "answer": answers,
+        "contexts": contexts,
+        "ground_truth": ground_truths,
+    })
+    llm = ChatOpenAI(
+        model=EVALUATOR_LLM_MODEL,
+        temperature=0,
+        api_key=OPENAI_API_KEY,
+        base_url=OPENAI_BASE_URL,
+        max_retries=8,
+        timeout=120,
+    )
+    embedding_client = genai.Client(api_key=GOOGLE_API_KEY)
+    embeddings = GoogleGenAIEmbeddings(embedding_client)
+    metrics = [copy.deepcopy(metric) for metric in (
+        faithfulness, answer_relevancy, context_precision, context_recall
+    )]
+    # Gemini's OpenAI-compatible endpoint does not support multiple candidates
+    # in one request; use one generated question per answer-relevancy score.
+    metrics[1].strictness = 1
+    result = evaluate(
+        dataset,
+        metrics=metrics,
+        llm=llm,
+        embeddings=embeddings,
+        run_config=RunConfig(timeout=600, max_retries=8, max_wait=60, max_workers=2),
+        raise_exceptions=True,
+    )
+    df = result.to_pandas()
+    if len(df) != len(questions):
+        raise ValueError(f"RAGAS returned {len(df)} rows for {len(questions)} inputs.")
+
+    per_question = []
+    for _, row in df.iterrows():
+        per_question.append(EvalResult(
+            question=str(row["question"]),
+            answer=str(row["answer"]),
+            contexts=list(row["contexts"]),
+            ground_truth=str(row["ground_truth"]),
+            faithfulness=_safe_float(row["faithfulness"]),
+            answer_relevancy=_safe_float(row["answer_relevancy"]),
+            context_precision=_safe_float(row["context_precision"]),
+            context_recall=_safe_float(row["context_recall"]),
+        ))
+
+    aggregate = {
+        metric: sum(getattr(item, metric) for item in per_question) / len(per_question)
+        for metric in ("faithfulness", "answer_relevancy", "context_precision", "context_recall")
+    }
+    aggregate["per_question"] = per_question
+    aggregate["metadata"] = {
+        "evaluator_models": sorted({EVALUATOR_LLM_MODEL, EVALUATOR_EMBEDDING_MODEL}),
+        "evaluator_backend": "ragas",
+    }
+    return aggregate
 
 
 def failure_analysis(eval_results: list[EvalResult], bottom_n: int = 10) -> list[dict]:
