@@ -4,11 +4,11 @@ Tên nhóm:
 
 Repo chung:
 
-Trưởng nhóm/người nộp: **Hoàng Công Minh — 2A202602774**.
+Trưởng nhóm/người nộp:
 
 Ngày lab/deadline áp dụng:
 
-Commit dùng để chấm: d860aa42becc24f69c78af6170512234a08fadab (Phase C implementation/artifacts; commit TEAM phía sau chỉ ghi SHA này). Repo chưa push.
+Commit dùng để chấm: d860aa42becc24f69c78af6170512234a08fadab (Phase C implementation/artifacts; commit TEAM phía sau chỉ ghi SHA này).
 
 Thông tin nhóm và các thành viên khác để trống theo yêu cầu. Danh sách này chưa
 phải danh sách đầy đủ của nhóm.
@@ -17,7 +17,7 @@ phải danh sách đầy đủ của nhóm.
 
 | STT | Họ và tên | MSSV | Vai trò / công việc thật | Bằng chứng |
 |---|---|---|---|---|
-| 1 | Hoàng Công Minh | 2A202602774 | Nhóm trưởng; Phase C và phần guardrails của blueprint | src/phase_c_guard.py; tests/test_phase_c.py; doc/reports/blueprint.md |
+| 1 | Hoàng Công Minh | 2A202602774 | Thành viên; phụ trách Phase C và phần guardrails của blueprint | src/phase_c_guard.py; tests/test_phase_c.py; doc/reports/blueprint.md |
 
 Người tích hợp/chạy batch/nộp link:
 
@@ -41,7 +41,7 @@ chưa có báo cáo A/B để đối chiếu. Không quy phần m1–m5/A/B cho 
 
 ### HoangCongMinh-2A202602774
 
-- Phần được giao: Phase C Tasks 9a–12 và phần guardrails của blueprint.
+- Vai trò: thành viên; phụ trách Phase C Tasks 9a–12 và phần guardrails của blueprint.
 - Triển khai có Codex hỗ trợ: năm hàm PII/input/output/suite/latency; activated
   rails quyết định block; suite kiểm tra Presidio trước NeMo; latency có hai
   warm-up, ít nhất 20 timed samples và một event loop.

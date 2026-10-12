@@ -2,7 +2,7 @@
 
 Nhóm:
 
-Người phụ trách Phase C: **Hoàng Công Minh — 2A202602774**.
+Thành viên phụ trách Phase C: **Hoàng Công Minh — 2A202602774**.
 
 Đây là **đề xuất CI/CD**, chưa triển khai/chạy workflow.
 Nguồn dự kiến: artifacts/ragas_50q.json, artifacts/judge_results.json và
