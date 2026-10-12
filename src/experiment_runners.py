@@ -111,6 +111,7 @@ def run_phase_c(n_samples=20):
         used_guard_models.extend(guard_models(rails))
         rows = []
         for case in outputs:
+            await phase._wait_for_guard_request_slot(rails)
             result = await phase.check_output_rail(case["question"], case["answer"], rails=rails)
             rows.append({**case, **result,
                          "passed": result["safe"] == (case["expected"] == "safe")})

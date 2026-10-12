@@ -50,6 +50,17 @@ def test_pii_clean(pii_engines):
     pii_engines[0].analyze.assert_called_once()
 
 
+@pytest.mark.parametrize("kind", ["PERSON", "LOCATION", "US_DRIVER_LICENSE"])
+def test_vietnamese_policy_false_positive_is_not_a_pii_gate(kind):
+    text = "Nhân viên hỏi chính sách nghỉ phép v2024."
+    analyzer = SimpleNamespace(analyze=Mock(return_value=[
+        SimpleNamespace(entity_type=kind, start=0, end=4, score=.9)]))
+    anonymizer = SimpleNamespace(anonymize=Mock())
+    assert phase.pii_scan(text, analyzer, anonymizer) == {
+        "has_pii": False, "entities": [], "anonymized": text}
+    anonymizer.anonymize.assert_not_called()
+
+
 @pytest.mark.parametrize("blocked",[True,False])
 def test_input_uses_rail_decision(blocked):
     result=SimpleNamespace(response=[{"role":"assistant","content":"policy response"}],
@@ -115,3 +126,16 @@ def test_latency_real_warmup_and_sample_count(monkeypatch):
     validate_latency(result)
     assert pii.call_count==22 and nemo.await_count==22
     assert result["input_guard_ms"]["p95"]==pytest.approx(4)
+
+
+def test_gemini_request_spacing_reserves_next_slot(monkeypatch):
+    monkeypatch.delenv("GUARD_REQUEST_INTERVAL_SECONDS", raising=False)
+    monkeypatch.setattr(phase, "_next_guard_request_at", 24.5)
+    monkeypatch.setattr(phase.time, "monotonic", Mock(return_value=22.0))
+    sleeper = AsyncMock()
+    monkeypatch.setattr(phase.asyncio, "sleep", sleeper)
+    rails = SimpleNamespace(llm=SimpleNamespace(
+        openai_api_base="https://generativelanguage.googleapis.com/v1beta/openai/"))
+    asyncio.run(phase._wait_for_guard_request_slot(rails))
+    sleeper.assert_awaited_once_with(2.5)
+    assert phase._next_guard_request_at == 29.0
